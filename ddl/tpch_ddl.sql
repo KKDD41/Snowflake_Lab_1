@@ -1,5 +1,5 @@
-drop table tpch.region;
-create table tpch.region
+drop table region;
+create table region
 (
   r_regionkey INTEGER,
   r_name      CHAR(25),
@@ -7,8 +7,8 @@ create table tpch.region
 );
 
 
-drop table tpch.nation;
-create table tpch.nation
+drop table nation;
+create table nation
 (
   n_nationkey INTEGER not null,
   n_name      CHAR(27),
@@ -17,8 +17,8 @@ create table tpch.nation
 );
 
 
-drop table tpch.supplier;
-create table tpch.supplier
+drop table supplier;
+create table supplier
 (
   s_suppkey   INTEGER not null,
   s_name      CHAR(25),
@@ -30,8 +30,8 @@ create table tpch.supplier
 );
 
 
-drop table tpch.orders;
-create table tpch.orders
+drop table orders;
+create table orders
 (
   o_orderkey      INTEGER not null,
   o_custkey       INTEGER not null,
@@ -45,8 +45,8 @@ create table tpch.orders
 );
 
 
-drop table tpch.partsupp;
-create table tpch.partsupp
+drop table partsupp;
+create table partsupp
 (
   ps_partkey    INTEGER not null,
   ps_suppkey    INTEGER not null,
@@ -56,8 +56,8 @@ create table tpch.partsupp
 );
 
 
-drop table tpch.part;
-create table tpch.part
+drop table part;
+create table part
 (
   p_partkey     INTEGER not null,
   p_name        VARCHAR(55),
@@ -71,8 +71,8 @@ create table tpch.part
 );
 
 
-drop table tpch.customer;
-create table tpch.customer
+drop table customer;
+create table customer
 (
   c_custkey    INTEGER not null,
   c_name       VARCHAR(25),
@@ -85,8 +85,8 @@ create table tpch.customer
 );
 
 
-drop table tpch.lineitem;
-create table tpch.lineitem
+drop table lineitem;
+create table lineitem
 (
   l_orderkey      INTEGER not null,
   l_partkey       INTEGER not null,
