@@ -1,0 +1,5 @@
+created_on,name,id,database_name,schema_name,owner,comment,warehouse,schedule,predecessors,state,definition,condition,allow_overlapping_execution,error_integration,last_committed_on,last_suspended_on,owner_role_type,config,budget,task_relations,last_suspended_reason
+2024-10-19 05:13:14.245 -0700,RELOAD_DATA_FROM_CORE_DWH_TO_DATA_MART,01b7cb3d-6f9a-2d2a-0000-000000000036,EPAM_LAB,CORE_DWH,ACCOUNTADMIN,,COMPUTE_WH,,"[
+  ""EPAM_LAB.CORE_DWH.RELOAD_DATA_FROM_STAGE_TO_CORE_DWH""
+]",started,CALL reload_data_from_core_dwh_to_data_mart_procedure(),,null,null,,,ROLE,,,"{""Predecessors"":[""EPAM_LAB.CORE_DWH.RELOAD_DATA_FROM_STAGE_TO_CORE_DWH""]}",
+2024-10-19 04:40:38.293 -0700,RELOAD_DATA_FROM_STAGE_TO_CORE_DWH,01b7cb1c-b203-4c6c-0000-000000000031,EPAM_LAB,CORE_DWH,ACCOUNTADMIN,,COMPUTE_WH,"USING CRON 0,30 * * * * UTC",[],started,CALL reload_data_from_stage_to_core_dwh_procedure(),,false,null,2024-10-19 05:13:51.488 -0700,2024-10-19 05:13:42.686 -0700,ROLE,,,"{""Predecessors"":[]}",USER_SUSPENDED
