@@ -323,10 +323,266 @@ For solution, where Snowpipes were using instead of stored procedures, please re
 
 ## Task 4: Connection to BI-Tool
 
+### Connect Snowflake to DBeaver
+Existing Snowflake database `EPAM_LAB` was successfully connected and accessed through DBeaver.
+![](./screenshots/11-DBeaver-connection.png)
+![](./screenshots/12-Dbearver-works-fine.png)
 
+### Connect Snowflake to TIBCO Spotfire
+TIBCO Spotfire is a separate and very flexible BI-Tool for dashboards creation. It has its own Snowflake's connector, 
+based on Snowflake's ODBC Driver. Steps for connection were preformed:
+1. Installation of Snowflake ODBC Driver and DSN Configuring: https://docs.snowflake.com/developer-guide/odbc/odbc-windows.
+2. Connecting Snowflake to Spotfire Desktop.
+![](./screenshots/13-Snowflake-Connection-to-Spotfire.png)
+
+### BI-Report Creation
+Full report file is accessible in `./report/Spotfire-Lab-1-Report.dxp`, and full visual export is saved as PDF file
+`./report/Snowflake-Lab-1-Report-Export.pdf` for review.
+
+![](./screenshots/14-Spotfire-Customer-Dim.png)
+![](./screenshots/15-Spotfire-Lineitem-fact.png)
+![](./screenshots/16-Spotfire-Partsupp-dim.png)
 
 ## Task 5: Snowflake SQL
 
+### SnowSQL CLI Tool
+For executing queries within command line interface SnowSQL tool was installed and used.
+![](./screenshots/18-SnowSQL-cli-usage.png)
+
+### Benchmark Queries for CORE_DWH
+First 10 Benchmark Queries were executed on `CORE_DWH` tables, using `X-SMALL` Compute Warehouse 
+(`./benchmarks_queries/tpch_benchmark_queries_core_dwh.sql`):
+![](./screenshots/17-Benchmark-Core-Dwh.png)
+
+### Benchmark Queries for DATA_MART
+First 10 Benchmark Queries were rewritten to execute on `DATA_MART` tables and were executing using `X-SMALL` Compute Warehouse
+(`./benchmarks_queries/tpch_benchmark_queries_data_mart.sql`):
+![](./screenshots/19-Benchmark-Data-Mart.png)
+
+However, as it could be seen from screenshot, cross-table usage is way more complicated for denormalized data, and some of 
+the queries require enormous amount of partitions and data to be scanned. 
+
+### Compute Warehouses exploration
+
+For exploratory purposes `LARGE` Compute Warehouse was created:
+```sql
+create or replace warehouse COMPUTE_WH_LARGE
+warehouse_size = LARGE;
+```
+![](./screenshots/20-Large-WH-creation.png)
+
+And as it could be seen from the screenshot below, execution time for `CORE_DWH` benchmark queries was reduced due 
+to larger computation capabilities (and higher number of partitions could be stored in cache):
+![](./screenshots/21-Benchmark-Core-Dwh-With-Large.png)
+
 ## Task 6: Other Snowflake Features
 
+### Object Cloning
+
+### Time Travel
+
+
+
 ## Task 7: Snowpipe
+Snowpipes were created and used to load data from `STAGE` to `CORE_DWH`. Unfortunately, option `AUTO_INGEST = FALSE`
+is not supported by internal Snowflake's stages, therefore following steps were implemented (all details in `./etl/load_from_stage_to_core_pipes.sql`):
+1. For each table pipe with `COPY INTO` statement was created
+```sql
+CREATE OR REPLACE PIPE load_from_stage_h_lineitem
+AUTO_INGEST = FALSE AS
+    COPY INTO EPAM_LAB.CORE_DWH.LINEITEM
+    FROM @EPAM_LAB.CORE_DWH.STAGE
+    PATTERN = 'h_lineitem_[0-9].csv'
+    FILE_FORMAT = CSV_FORMAT;
+    
+-- Similarly for other tables
+```
+![](./screenshots/8-Create-Pipes-for-Ingestion.png)
+2. Stored procedure was created to resume pipes execution.
+```sql
+CREATE OR REPLACE PROCEDURE reload_data_from_stage_to_core_dwh_procedure(message VARCHAR)
+RETURNS VARCHAR NOT NULL
+LANGUAGE SQL
+AS
+BEGIN
+    CALL create_tables_in_core_dwh('');
+
+    CALL SYSTEM$PIPE_FORCE_RESUME('EPAM_LAB.CORE_DWH.LOAD_FROM_STAGE_H_CUSTOMER');
+    CALL SYSTEM$PIPE_FORCE_RESUME('EPAM_LAB.CORE_DWH.LOAD_FROM_STAGE_H_LINEITEM');
+    CALL SYSTEM$PIPE_FORCE_RESUME('EPAM_LAB.CORE_DWH.LOAD_FROM_STAGE_H_NATION');
+    CALL SYSTEM$PIPE_FORCE_RESUME('EPAM_LAB.CORE_DWH.LOAD_FROM_STAGE_H_ORDER');
+    CALL SYSTEM$PIPE_FORCE_RESUME('EPAM_LAB.CORE_DWH.LOAD_FROM_STAGE_H_PART');
+    CALL SYSTEM$PIPE_FORCE_RESUME('EPAM_LAB.CORE_DWH.LOAD_FROM_STAGE_H_PARTSUPP');
+    CALL SYSTEM$PIPE_FORCE_RESUME('EPAM_LAB.CORE_DWH.LOAD_FROM_STAGE_H_REGION');
+    CALL SYSTEM$PIPE_FORCE_RESUME('EPAM_LAB.CORE_DWH.LOAD_FROM_STAGE_H_SUPPLIER');
+
+    RETURN 'Tables in CORE_DWH were created and populated with data from STAGE.';
+END; 
+```
+3. Task was created for force resuming pipes on demand:
+```sql
+CREATE OR REPLACE TASK reload_data_from_stage_to_core_dwh
+  WAREHOUSE = COMPUTE_WH
+AS
+  CALL reload_data_from_stage_to_core_dwh_procedure();
+```
+<table border="1">
+    <thead>
+        <tr>
+            <th>created_on</th>
+            <th>name</th>
+            <th>database_name</th>
+            <th>schema_name</th>
+            <th>definition</th>
+            <th>owner</th>
+            <th>notification_channel</th>
+            <th>comment</th>
+            <th>integration</th>
+            <th>pattern</th>
+            <th>error_integration</th>
+            <th>owner_role_type</th>
+            <th>invalid_reason</th>
+            <th>budget</th>
+            <th>kind</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>2024-10-19 03:42:47.985 -0700</td>
+            <td>LOAD_FROM_STAGE_H_SUPPLIER</td>
+            <td>EPAM_LAB</td>
+            <td>CORE_DWH</td>
+            <td>COPY INTO EPAM_LAB.CORE_DWH.SUPPLIER FROM @EPAM_LAB.CORE_DWH.STAGE PATTERN = 'h_supplier.csv' FILE_FORMAT = CSV_FORMAT</td>
+            <td>ACCOUNTADMIN</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td>h_supplier.csv</td>
+            <td></td>
+            <td>ROLE</td>
+            <td></td>
+            <td></td>
+            <td>STAGE</td>
+        </tr>
+        <tr>
+            <td>2024-10-19 03:42:19.566 -0700</td>
+            <td>LOAD_FROM_STAGE_H_REGION</td>
+            <td>EPAM_LAB</td>
+            <td>CORE_DWH</td>
+            <td>COPY INTO EPAM_LAB.CORE_DWH.REGION FROM @EPAM_LAB.CORE_DWH.STAGE PATTERN = 'h_region.csv' FILE_FORMAT = CSV_FORMAT</td>
+            <td>ACCOUNTADMIN</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td>h_region.csv</td>
+            <td></td>
+            <td>ROLE</td>
+            <td></td>
+            <td></td>
+            <td>STAGE</td>
+        </tr>
+        <tr>
+            <td>2024-10-19 03:41:56.125 -0700</td>
+            <td>LOAD_FROM_STAGE_H_PARTSUPP</td>
+            <td>EPAM_LAB</td>
+            <td>CORE_DWH</td>
+            <td>COPY INTO EPAM_LAB.CORE_DWH.PARTSUPP FROM @EPAM_LAB.CORE_DWH.STAGE PATTERN = 'h_partsupp.csv' FILE_FORMAT = CSV_FORMAT</td>
+            <td>ACCOUNTADMIN</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td>h_partsupp.csv</td>
+            <td></td>
+            <td>ROLE</td>
+            <td></td>
+            <td></td>
+            <td>STAGE</td>
+        </tr>
+        <tr>
+            <td>2024-10-19 03:46:25.437 -0700</td>
+            <td>LOAD_FROM_STAGE_H_PART</td>
+            <td>EPAM_LAB</td>
+            <td>CORE_DWH</td>
+            <td>COPY INTO EPAM_LAB.CORE_DWH.PART FROM @EPAM_LAB.CORE_DWH.STAGE PATTERN = 'h_part.csv' FILE_FORMAT = CSV_FORMAT</td>
+            <td>ACCOUNTADMIN</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td>h_part.csv</td>
+            <td></td>
+            <td>ROLE</td>
+            <td></td>
+            <td></td>
+            <td>STAGE</td>
+        </tr>
+        <tr>
+            <td>2024-10-19 04:10:15.583 -0700</td>
+            <td>LOAD_FROM_STAGE_H_ORDER</td>
+            <td>EPAM_LAB</td>
+            <td>CORE_DWH</td>
+            <td>COPY INTO EPAM_LAB.CORE_DWH.ORDERS FROM @EPAM_LAB.CORE_DWH.STAGE PATTERN = 'h_order_[0-9].csv' FILE_FORMAT = CSV_FORMAT</td>
+            <td>ACCOUNTADMIN</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td>h_order_[0-9].csv</td>
+            <td></td>
+            <td>ROLE</td>
+            <td></td>
+            <td></td>
+            <td>STAGE</td>
+        </tr>
+        <tr>
+            <td>2024-10-19 03:40:34.572 -0700</td>
+            <td>LOAD_FROM_STAGE_H_NATION</td>
+            <td>EPAM_LAB</td>
+            <td>CORE_DWH</td>
+            <td>COPY INTO EPAM_LAB.CORE_DWH.NATION FROM @EPAM_LAB.CORE_DWH.STAGE PATTERN = 'h_nation.csv' FILE_FORMAT = CSV_FORMAT</td>
+            <td>ACCOUNTADMIN</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td>h_nation.csv</td>
+            <td></td>
+            <td>ROLE</td>
+            <td></td>
+            <td></td>
+            <td>STAGE</td>
+        </tr>
+        <tr>
+            <td>2024-10-19 04:10:21.027 -0700</td>
+            <td>LOAD_FROM_STAGE_H_LINEITEM</td>
+            <td>EPAM_LAB</td>
+            <td>CORE_DWH</td>
+            <td>COPY INTO EPAM_LAB.CORE_DWH.LINEITEM FROM @EPAM_LAB.CORE_DWH.STAGE PATTERN = 'h_lineitem_[0-9].csv' FILE_FORMAT = CSV_FORMAT</td>
+            <td>ACCOUNTADMIN</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td>h_lineitem_[0-9].csv</td>
+            <td></td>
+            <td>ROLE</td>
+            <td></td>
+            <td></td>
+            <td>STAGE</td>
+        </tr>
+        <tr>
+            <td>2024-10-19 03:46:12.648 -0700</td>
+            <td>LOAD_FROM_STAGE_H_CUSTOMER</td>
+            <td>EPAM_LAB</td>
+            <td>CORE_DWH</td>
+            <td>COPY INTO EPAM_LAB.CORE_DWH.CUSTOMER FROM @EPAM_LAB.CORE_DWH.STAGE PATTERN = 'h_customer.csv' FILE_FORMAT = CSV_FORMAT</td>
+            <td>ACCOUNTADMIN</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td>h_customer.csv</td>
+            <td></td>
+            <td>ROLE</td>
+            <td></td>
+            <td></td>
+            <td>STAGE</td>
+        </tr>
+    </tbody>
+</table>
+
