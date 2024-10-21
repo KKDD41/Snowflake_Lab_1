@@ -1,5 +1,7 @@
 # Snowflake Lab 1
 
+Link to repository: https://github.com/KKDD41/Snowflake_Lab_1.
+
 ## Task 1: DB Creation
 
 ### Target schemas creation
@@ -378,10 +380,18 @@ to larger computation capabilities (and higher number of partitions could be sto
 ## Task 6: Other Snowflake Features
 
 ### Object Cloning
+```sql
+CREATE OR REPLACE TABLE NATION_DIM_CLONE
+CLONE NATION_DIM;
+```
 
 ### Time Travel
+```sql
+ALTER TABLE NATION_DIM SET DATA_RETENTION_TIME_IN_DAYS = 3;
 
-
+-- Accessing NATION_DIM 5 minutes ago
+SELECT * FROM my_table AT(OFFSET => -60*5);
+```
 
 ## Task 7: Snowpipe
 Snowpipes were created and used to load data from `STAGE` to `CORE_DWH`. Unfortunately, option `AUTO_INGEST = FALSE`
